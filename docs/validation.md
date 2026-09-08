@@ -1,23 +1,27 @@
 # Validation record
 
-Recorded during initial implementation, 2026-09-08.
+## Verified on GitHub Actions
 
-## Executed
+[Successful main-branch run](https://github.com/FuriousRec/datadock./actions/runs/34254011987)
+for commit `ec9323eeb981eefd3b7b7bae5cd2e944cf821fc6`, 2026-09-08:
 
-- Java 17 compiler module compiled the actual domain classes and CoreChecks runner.
-- All **33 CSV/domain checks passed** through `sh scripts/test-core.sh`.
+- `mvn -B verify`: dependency resolution, compilation, unit tests and real PostgreSQL HTTP integration tests passed.
+- `docker build -t datadock:ci .`: application container built successfully.
+- Test reports uploaded as the run's `test-results` artifact.
 
-- Java compiler syntax parsing passed for all 11 Java source files (not full type checking).
-- Maven XML, workflow/Compose YAML and OpenAPI JSON parsed successfully.
-- Git whitespace checks passed.
+## Verified locally
 
-## Not yet executed
+- 33 CSV/domain checks passed using `sh scripts/test-core.sh`.
+- All 11 Java files passed syntax parsing; configuration files parsed successfully.
 
-- Maven dependency resolution / full Spring Boot compilation.
-- JUnit and real PostgreSQL HTTP integration tests.
-- Docker build and Docker Compose startup.
-- GitHub Actions execution.
-- Bicep compilation, Azure resource provisioning, cloud deployment or smoke tests.
+## Additional packaging gates
 
-No CI success badges or claims of a running cloud service should be added until verified.
-Update this record with actual command outputs and run URLs when those gates pass.
+CI now also compiles the Bicep template and starts the Docker Compose stack.
+`scripts/smoke-test.py` waits for readiness, checks authentication, imports the sample,
+checks exact totals and rejects a duplicate. It requires an empty disposable database.
+Check the latest Verify run for the result of these newly added gates.
+
+## Still outstanding
+
+Azure provisioning, cloud deployment, and live cloud smoke testing have not been performed.
+Bicep compilation alone does not validate subscription permissions, quotas or network connectivity.

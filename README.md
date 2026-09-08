@@ -6,9 +6,10 @@ DataDock validates an entire upload, imports it in a PostgreSQL transaction, and
 paginated sales and date-filtered revenue summaries. It is a backend portfolio project,
 with Docker packaging, automated test workflows, and an Azure Container Apps deployment template.
 
-**Status:** 33 dependency-free domain checks have passed locally. The complete Maven build,
-PostgreSQL integration tests, Docker image and Azure template have not yet been executed.
-No live cloud deployment or performance claims are made.
+**Status:** Full Maven verification (including real PostgreSQL integration tests) and
+Docker image build [passed on GitHub Actions](https://github.com/FuriousRec/datadock./actions/runs/34254011987).
+The 33 dependency-free domain checks also passed locally. Azure has not been deployed.
+See [validation evidence](docs/validation.md) for the scope of verification.
 
 ## Features
 
