@@ -1,4 +1,5 @@
 """Exercise the packaged API against an empty, disposable database."""
+from http.client import RemoteDisconnected
 import json
 import os
 from pathlib import Path
@@ -26,7 +27,7 @@ for attempt in range(90):
     try:
         if request('/actuator/health/readiness', authenticated=False)[0] == 200:
             break
-    except (URLError, TimeoutError):
+    except (URLError, TimeoutError, ConnectionError, RemoteDisconnected):
         pass
     time.sleep(2)
 else:

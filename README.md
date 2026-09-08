@@ -149,3 +149,7 @@ Nothing in this repository automatically creates resources on push.
 
 Stop local services with `docker compose down`. The named volume retains data.
 For a deliberate local reset only, `docker compose down -v` deletes that volume.
+
+## License
+
+[MIT](LICENSE).
