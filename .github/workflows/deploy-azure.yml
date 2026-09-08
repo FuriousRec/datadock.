@@ -1,0 +1,48 @@
+name: Deploy to Azure
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: azure-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Verify before deployment
+        run: mvn -B verify
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and deploy an immutable image
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ACR_NAME:?Configure ACR_NAME}"
+          : "${RESOURCE_GROUP:?Configure AZURE_RESOURCE_GROUP}"
+          : "${APP_NAME:?Configure CONTAINER_APP_NAME}"
+          az acr build --registry "$ACR_NAME" --image "datadock:$GITHUB_SHA" .
+          registry_host=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+          az containerapp update --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" \
+            --image "$registry_host/datadock:$GITHUB_SHA"
+          app_host=$(az containerapp show --resource-group "$RESOURCE_GROUP" \
+            --name "$APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)
+          curl --fail --retry 12 --retry-all-errors --retry-delay 10 \
+            --max-time 15 "https://$app_host/actuator/health/readiness"

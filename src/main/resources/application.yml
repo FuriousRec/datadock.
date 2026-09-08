@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: datadock
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/datadock}
+    username: ${DB_USER:datadock}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+app:
+  api-key: ${APP_API_KEY}

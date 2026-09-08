@@ -1,0 +1,28 @@
+services:
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: datadock
+      POSTGRES_USER: datadock
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - sales-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datadock -d datadock"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/datadock
+      DB_USER: datadock
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_API_KEY: ${APP_API_KEY:?Set APP_API_KEY in .env}
+    depends_on:
+      database:
+        condition: service_healthy
+volumes:
+  sales-data:
