@@ -81,10 +81,29 @@ class ApiIT {
         assertEquals(2, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));
     }
 
+
+    @Test
+    void filtersSalesByExactCategory() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+
+        var accessories = get("/api/v1/sales?category=Accessories", true);
+        assertEquals(200, accessories.statusCode());
+        assertTrue(accessories.body().contains("\"category\":\"Accessories\""),
+                accessories.body());
+        assertFalse(accessories.body().contains("\"category\":\"Displays\""),
+                accessories.body());
+
+        var missing = get("/api/v1/sales?category=Missing", true);
+        assertEquals(200, missing.statusCode());
+        assertEquals("[]", missing.body());
+    }
+
     @Test
     void protectsApiAndValidatesQueries() throws Exception {
         assertEquals(401, get("/api/v1/sales", false).statusCode());
         assertEquals(400, get("/api/v1/sales?size=101", true).statusCode());
+        assertEquals(400, get("/api/v1/sales?category=%20", true).statusCode());
+        assertEquals(400, get("/api/v1/sales?category=" + "x".repeat(81), true).statusCode());
         assertEquals(400, get("/api/v1/analytics/summary?from=2026-09-03&to=2026-09-01", true).statusCode());
         assertEquals(200, get("/actuator/health", false).statusCode());
     }

@@ -114,6 +114,17 @@
             "description": "Inclusive ISO end date; default 9999-12-31"
           },
           {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "description": "Optional case-sensitive exact category match; surrounding whitespace is stripped"
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {

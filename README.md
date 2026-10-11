@@ -19,7 +19,7 @@ See [validation evidence](docs/validation.md).
 - Record-level validation; invalid files do not create partial imports.
 - Database-enforced deduplication of byte-identical uploads, including concurrent requests.
 - Exact decimal prices and EUR revenue calculations.
-- SQL-backed aggregation and deterministic pagination.
+- SQL-backed aggregation, deterministic pagination and exact category filtering.
 - API-key authentication with constant-time comparison and environment-provided secrets.
 - Flyway schema migrations, health probes and structured operational log messages.
 - Non-root container, local PostgreSQL Compose stack, GitHub Actions verification.
@@ -75,7 +75,7 @@ Every `/api/v1/*` endpoint requires `X-API-Key`. Dates are inclusive ISO dates.
 | Method | Route | Purpose |
 |---|---|---|
 | POST | /api/v1/imports | Multipart upload using the field `file`; returns import UUID, row count and SHA-256 |
-| GET | /api/v1/sales | `from`, `to`, `page` (zero-based), `size` (1–100) |
+| GET | /api/v1/sales | `from`, `to`, optional exact `category`, `page` (zero-based), `size` (1–100) |
 | GET | /api/v1/analytics/summary | Row count, total units and EUR revenue for `from` / `to` |
 | GET | /api/v1/analytics/categories | Revenue and units grouped by category |
 | GET | /actuator/health | Public health status, with details hidden |
@@ -120,7 +120,7 @@ Full verification requires Docker and uses a real PostgreSQL Testcontainer:
 mvn verify
 ```
 
-It covers HTTP authentication, CSV import, date filtering, invalid input, duplicate uploads,
+It covers HTTP authentication, CSV import, date/category filtering, invalid input, duplicate uploads,
 and simultaneous identical uploads. CI runs verification before building the image.
 
 The same 33 domain checks can also run without Maven or downloaded dependencies:
