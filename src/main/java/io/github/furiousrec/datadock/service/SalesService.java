@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -55,20 +56,30 @@ public class SalesService {
     }
 
     @Transactional(readOnly = true)
-    public List<SaleView> sales(LocalDate from, LocalDate to, int page, int size) {
+    public List<SaleView> sales(
+            LocalDate from, LocalDate to, String category, int page, int size) {
         checkRange(from, to);
         if (page < 0 || page > 1_000_000 || size < 1 || size > 100) {
             throw new IllegalArgumentException("page must be 0–1000000 and size must be 1–100.");
         }
+
+        String categoryFilter = normalizeCategory(category);
+        String categoryClause = categoryFilter == null ? "" : " AND category = ?";
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(Date.valueOf(from));
+        parameters.add(Date.valueOf(to));
+        if (categoryFilter != null) parameters.add(categoryFilter);
+        parameters.add(size);
+        parameters.add((long) page * size);
+
         return database.query("""
                 SELECT id, import_id, sold_at, sku, category, quantity, unit_price
-                FROM sale WHERE sold_at BETWEEN ? AND ?
+                FROM sale WHERE sold_at BETWEEN ? AND ?%s
                 ORDER BY sold_at, id LIMIT ? OFFSET ?
-                """, (row, index) -> new SaleView(row.getLong("id"),
+                """.formatted(categoryClause), (row, index) -> new SaleView(row.getLong("id"),
                 row.getObject("import_id", UUID.class), row.getDate("sold_at").toLocalDate(),
                 row.getString("sku"), row.getString("category"), row.getInt("quantity"),
-                row.getBigDecimal("unit_price")), Date.valueOf(from), Date.valueOf(to),
-                size, (long) page * size);
+                row.getBigDecimal("unit_price")), parameters.toArray());
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +102,17 @@ public class SalesService {
                 GROUP BY category ORDER BY revenue DESC, category
                 """, (row, index) -> new CategorySummary(row.getString("category"),
                 row.getLong("units"), row.getBigDecimal("revenue")), Date.valueOf(from), Date.valueOf(to));
+    }
+
+    private static String normalizeCategory(String category) {
+        if (category == null) return null;
+        String clean = category.strip();
+        if (clean.isEmpty() || clean.length() > 80
+                || clean.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalArgumentException(
+                    "category must be 1–80 characters without control characters.");
+        }
+        return clean;
     }
 
     private static void checkRange(LocalDate from, LocalDate to) {
