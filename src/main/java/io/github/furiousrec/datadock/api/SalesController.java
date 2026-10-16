@@ -33,8 +33,10 @@ public class SalesController {
     public List<SaleView> list(@RequestParam(defaultValue = "0001-01-01") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(defaultValue = "9999-12-31") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate afterSoldAt,
+            @RequestParam(required = false) Long afterId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size) {
-        return sales.sales(from, to, category, page, size);
+        return sales.sales(from, to, category, afterSoldAt, afterId, page, size);
     }
 
     @GetMapping("/analytics/summary")

@@ -19,7 +19,7 @@ See [validation evidence](docs/validation.md).
 - Record-level validation; invalid files do not create partial imports.
 - Database-enforced deduplication of byte-identical uploads, including concurrent requests.
 - Exact decimal prices and EUR revenue calculations.
-- SQL-backed aggregation, deterministic pagination and exact category filtering.
+- SQL-backed aggregation, stable keyset or offset pagination, and exact category filtering.
 - API-key authentication with constant-time comparison and environment-provided secrets.
 - Flyway schema migrations, health probes and structured operational log messages.
 - Non-root container, local PostgreSQL Compose stack, GitHub Actions verification.
@@ -75,11 +75,16 @@ Every `/api/v1/*` endpoint requires `X-API-Key`. Dates are inclusive ISO dates.
 | Method | Route | Purpose |
 |---|---|---|
 | POST | /api/v1/imports | Multipart upload using the field `file`; returns import UUID, row count and SHA-256 |
-| GET | /api/v1/sales | `from`, `to`, optional exact `category`, `page` (zero-based), `size` (1–100) |
+| GET | /api/v1/sales | `from`, `to`, optional exact `category`, `page`/`size`, or stable `afterSoldAt` + `afterId` cursor |
 | GET | /api/v1/analytics/summary | Row count, total units and EUR revenue for `from` / `to` |
 | GET | /api/v1/analytics/categories | Revenue and units grouped by category |
 | GET | /actuator/health | Public health status, with details hidden |
 | GET | /actuator/health/readiness | Readiness includes database connectivity |
+
+
+Offset pagination remains available for simple browsing. For stable traversal while imports
+continue, send the last row's `soldAt` and `id` as `afterSoldAt` and `afterId`.
+Cursor fields must be supplied together; cursor requests use `page=0`.
 
 Errors use Problem Details responses: 400 invalid input, 401 missing/incorrect key,
 409 duplicate file, 413 upload too large. Unexpected internal failures return 500

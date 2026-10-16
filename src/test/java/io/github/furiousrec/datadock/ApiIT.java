@@ -99,6 +99,50 @@ class ApiIT {
     }
 
     @Test
+    void cursorPaginationStaysStableWhenEarlierSalesArrive() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+
+        var first = get("/api/v1/sales?size=1", true);
+        assertEquals(200, first.statusCode());
+        assertTrue(first.body().contains("\"sku\":\"A\""), first.body());
+        long firstId = database.queryForObject(
+                "SELECT id FROM sale WHERE sku = 'A'", Long.class);
+
+        String earlierCsv = "sold_at,sku,category,quantity,unit_price\n"
+                + "2026-08-31,EARLIER,Accessories,1,5.00\n";
+        assertEquals(201, upload(earlierCsv).statusCode());
+
+        var shiftedOffset = get("/api/v1/sales?page=1&size=1", true);
+        assertTrue(shiftedOffset.body().contains("\"sku\":\"A\""),
+                shiftedOffset.body());
+
+        var stableCursor = get("/api/v1/sales?size=1"
+                + "&afterSoldAt=2026-09-01&afterId=" + firstId, true);
+        assertEquals(200, stableCursor.statusCode());
+        assertTrue(stableCursor.body().contains("\"sku\":\"B\""),
+                stableCursor.body());
+        assertFalse(stableCursor.body().contains("\"sku\":\"A\""),
+                stableCursor.body());
+        assertFalse(stableCursor.body().contains("\"sku\":\"EARLIER\""),
+                stableCursor.body());
+    }
+
+    @Test
+    void validatesCursorParameters() throws Exception {
+        assertEquals(400, get("/api/v1/sales?afterId=1", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/sales?afterSoldAt=2026-09-01", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/sales?afterSoldAt=2026-09-01&afterId=0", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/sales?afterSoldAt=2026-09-01&afterId=1&page=1", true)
+                .statusCode());
+        assertEquals(400, get(
+                "/api/v1/sales?from=2026-09-02&afterSoldAt=2026-09-01&afterId=1",
+                true).statusCode());
+    }
+
+    @Test
     void protectsApiAndValidatesQueries() throws Exception {
         assertEquals(401, get("/api/v1/sales", false).statusCode());
         assertEquals(400, get("/api/v1/sales?size=101", true).statusCode());
