@@ -25,8 +25,10 @@ source-system identifier and an immutable event ID.
 BigDecimal and NUMERIC avoid binary floating-point rounding. Currency is fixed to EUR;
 adding currencies without grouping and conversion rules would make the summary misleading.
 Queries aggregate in PostgreSQL instead of loading all records into Java. A date index
-supports filtering. Pagination sorts by date then unique ID; concurrent imports can still
-shift offset pages. Keyset pagination is a sensible next iteration.
+supports filtering. Pagination sorts by date then unique ID. Offset pages can shift during concurrent imports,
+so the sales endpoint also supports an optional `(soldAt, id)` keyset cursor. The cursor
+avoids duplicates and gaps caused by rows inserted before the current position; clients
+still need to retain the last returned cursor and restart if their filter changes.
 
 ## Authentication boundary
 

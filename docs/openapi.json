@@ -143,6 +143,27 @@
               "maximum": 100,
               "default": 50
             }
+          },
+          {
+            "name": "afterSoldAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Cursor date from the last returned sale; must be paired with afterId and inside from/to"
+          },
+          {
+            "name": "afterId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "description": "Cursor ID from the last returned sale; must be paired with afterSoldAt and page=0"
           }
         ],
         "responses": {
@@ -179,7 +200,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Use page/size for offset pagination, or afterSoldAt plus afterId for stable keyset pagination."
       }
     },
     "/api/v1/analytics/summary": {

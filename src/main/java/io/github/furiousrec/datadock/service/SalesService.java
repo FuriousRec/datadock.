@@ -57,29 +57,50 @@ public class SalesService {
 
     @Transactional(readOnly = true)
     public List<SaleView> sales(
-            LocalDate from, LocalDate to, String category, int page, int size) {
+            LocalDate from, LocalDate to, String category,
+            LocalDate afterSoldAt, Long afterId, int page, int size) {
         checkRange(from, to);
         if (page < 0 || page > 1_000_000 || size < 1 || size > 100) {
             throw new IllegalArgumentException("page must be 0–1000000 and size must be 1–100.");
         }
 
+        boolean hasCursor = afterSoldAt != null || afterId != null;
+        if (hasCursor && (afterSoldAt == null || afterId == null)) {
+            throw new IllegalArgumentException(
+                    "afterSoldAt and afterId must be supplied together.");
+        }
+        if (hasCursor && (afterId < 1 || page != 0
+                || afterSoldAt.isBefore(from) || afterSoldAt.isAfter(to))) {
+            throw new IllegalArgumentException(
+                    "cursor must be inside the date range with afterId >= 1 and page = 0.");
+        }
+
         String categoryFilter = normalizeCategory(category);
         String categoryClause = categoryFilter == null ? "" : " AND category = ?";
+        String cursorClause = hasCursor ? " AND (sold_at, id) > (?, ?)" : "";
+        String paginationClause = hasCursor ? " LIMIT ?" : " LIMIT ? OFFSET ?";
         List<Object> parameters = new ArrayList<>();
         parameters.add(Date.valueOf(from));
         parameters.add(Date.valueOf(to));
         if (categoryFilter != null) parameters.add(categoryFilter);
+        if (hasCursor) {
+            parameters.add(Date.valueOf(afterSoldAt));
+            parameters.add(afterId);
+        }
         parameters.add(size);
-        parameters.add((long) page * size);
+        if (!hasCursor) parameters.add((long) page * size);
 
         return database.query("""
                 SELECT id, import_id, sold_at, sku, category, quantity, unit_price
-                FROM sale WHERE sold_at BETWEEN ? AND ?%s
-                ORDER BY sold_at, id LIMIT ? OFFSET ?
-                """.formatted(categoryClause), (row, index) -> new SaleView(row.getLong("id"),
-                row.getObject("import_id", UUID.class), row.getDate("sold_at").toLocalDate(),
-                row.getString("sku"), row.getString("category"), row.getInt("quantity"),
-                row.getBigDecimal("unit_price")), parameters.toArray());
+                FROM sale WHERE sold_at BETWEEN ? AND ?%s%s
+                ORDER BY sold_at, id%s
+                """.formatted(categoryClause, cursorClause, paginationClause),
+                (row, index) -> new SaleView(row.getLong("id"),
+                        row.getObject("import_id", UUID.class),
+                        row.getDate("sold_at").toLocalDate(),
+                        row.getString("sku"), row.getString("category"),
+                        row.getInt("quantity"), row.getBigDecimal("unit_price")),
+                parameters.toArray());
     }
 
     @Transactional(readOnly = true)
