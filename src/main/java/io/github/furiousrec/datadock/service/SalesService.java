@@ -1,5 +1,6 @@
 package io.github.furiousrec.datadock.service;
 
+import io.github.furiousrec.datadock.domain.ImportNotFoundException;
 import io.github.furiousrec.datadock.domain.Sale;
 import io.github.furiousrec.datadock.domain.SalesCsv;
 import java.math.BigDecimal;
@@ -7,6 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -27,6 +29,7 @@ public class SalesService {
     }
 
     public record ImportResult(UUID id, int rows, String sha256) {}
+    public record ImportView(UUID id, int rows, String sha256, OffsetDateTime createdAt) {}
     public record SaleView(long id, UUID importId, LocalDate soldAt, String sku,
             String category, int quantity, BigDecimal unitPrice) {}
     public record Summary(long rows, long units, BigDecimal revenue, String currency) {}
@@ -53,6 +56,23 @@ public class SalesService {
         });
         log.info("Persisted import id={} rows={} (transaction pending commit)", importId, sales.size());
         return new ImportResult(importId, sales.size(), hash);
+    }
+
+    @Transactional(readOnly = true)
+    public ImportView importById(UUID id) {
+        List<ImportView> imports = database.query("""
+                SELECT id, row_count, sha256, created_at
+                FROM import_batch WHERE id = ?
+                """, (row, index) -> new ImportView(
+                        row.getObject("id", UUID.class),
+                        row.getInt("row_count"),
+                        row.getString("sha256").strip(),
+                        row.getObject("created_at", OffsetDateTime.class)),
+                id);
+        if (imports.isEmpty()) {
+            throw new ImportNotFoundException(id);
+        }
+        return imports.get(0);
     }
 
     @Transactional(readOnly = true)
