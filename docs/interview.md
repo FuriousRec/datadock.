@@ -29,3 +29,11 @@ and automated tested image deployment through GitHub Actions with OIDC.”
 
 Do not add adoption, latency, savings or reliability numbers unless measured. Retain a
 redacted deployment screenshot, workflow run link and short demo for evidence.
+
+
+## Why expose import provenance?
+
+A sale's `importId` is only useful lineage if a client can resolve it. The
+provenance endpoint connects query results back to the original batch metadata:
+row count, content hash and commit timestamp. It supports audit and debugging
+without returning the uploaded file or weakening API-key protection.

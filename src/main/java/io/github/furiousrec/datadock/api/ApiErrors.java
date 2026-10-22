@@ -1,5 +1,6 @@
 package io.github.furiousrec.datadock.api;
 
+import io.github.furiousrec.datadock.domain.ImportNotFoundException;
 import io.github.furiousrec.datadock.domain.InvalidCsvException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,11 @@ public class ApiErrors {
     @ExceptionHandler({InvalidCsvException.class, IllegalArgumentException.class})
     ProblemDetail invalidInput(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(ImportNotFoundException.class)
+    ProblemDetail importNotFound(ImportNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(DuplicateKeyException.class)

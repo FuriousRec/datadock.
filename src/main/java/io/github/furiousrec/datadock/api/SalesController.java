@@ -29,6 +29,11 @@ public class SalesController {
         return sales.importCsv(file.getBytes());
     }
 
+    @GetMapping("/imports/{id}")
+    public ImportView importById(@PathVariable java.util.UUID id) {
+        return sales.importById(id);
+    }
+
     @GetMapping("/sales")
     public List<SaleView> list(@RequestParam(defaultValue = "0001-01-01") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(defaultValue = "9999-12-31") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,

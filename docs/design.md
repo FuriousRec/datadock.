@@ -54,3 +54,12 @@ internet to make the example work.
 No async worker, S3/Blob storage, UI, tenancy, distributed tracing, benchmark results,
 production uptime record, file-retention system or automatic database backup configuration.
 Raw uploaded files are not persisted. Import metadata retains hash, ID, count and timestamp.
+
+
+## Import provenance
+
+Every sale response includes the UUID of its import batch. The authenticated
+`GET /api/v1/imports/{id}` endpoint resolves that identifier to the batch row
+count, byte-level SHA-256 and database creation timestamp. This makes the API's
+lineage information usable without exposing database access. Missing valid UUIDs
+return `404`; malformed UUID paths remain client errors.

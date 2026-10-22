@@ -59,6 +59,34 @@ class ApiIT {
     }
 
     @Test
+    void resolvesSaleImportIdsToProvenanceMetadata() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+        var saleResponse = get("/api/v1/sales?size=1", true);
+        assertEquals(200, saleResponse.statusCode());
+
+        var importId = database.queryForObject(
+                "SELECT id FROM import_batch", java.util.UUID.class);
+        assertTrue(saleResponse.body().contains(
+                "\"importId\":\"" + importId + "\""), saleResponse.body());
+
+        var provenance = get("/api/v1/imports/" + importId, true);
+        assertEquals(200, provenance.statusCode());
+        assertTrue(provenance.body().contains("\"id\":\"" + importId + "\""),
+                provenance.body());
+        assertTrue(provenance.body().contains("\"rows\":2"), provenance.body());
+        assertTrue(provenance.body().matches(
+                ".*\\\"sha256\\\":\\\"[0-9a-f]{64}\\\".*"),
+                provenance.body());
+        assertTrue(provenance.body().contains("\"createdAt\":"), provenance.body());
+
+        var missing = get(
+                "/api/v1/imports/00000000-0000-0000-0000-000000000000", true);
+        assertEquals(404, missing.statusCode());
+        assertTrue(missing.body().contains("was not found"), missing.body());
+        assertEquals(401, get("/api/v1/imports/" + importId, false).statusCode());
+    }
+
+    @Test
     void rejectsInvalidRowsWithoutPartialWrites() throws Exception {
         assertEquals(400, upload(CSV + "2026-09-02,C,Accessories,-1,1\n").statusCode());
         assertEquals(0, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));

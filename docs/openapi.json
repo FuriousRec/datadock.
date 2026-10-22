@@ -92,6 +92,43 @@
         }
       }
     },
+    "/api/v1/imports/{id}": {
+      "get": {
+        "summary": "Resolve import provenance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed UUID path"
+          },
+          "401": {
+            "description": "Problem Details"
+          },
+          "404": {
+            "description": "Import UUID not found"
+          }
+        }
+      }
+    },
     "/api/v1/sales": {
       "get": {
         "parameters": [
@@ -404,6 +441,34 @@
           },
           "revenue": {
             "type": "number"
+          }
+        }
+      },
+      "ImportView": {
+        "type": "object",
+        "required": [
+          "id",
+          "rows",
+          "sha256",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
