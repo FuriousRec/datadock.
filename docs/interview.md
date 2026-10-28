@@ -37,3 +37,11 @@ A sale's `importId` is only useful lineage if a client can resolve it. The
 provenance endpoint connects query results back to the original batch metadata:
 row count, content hash and commit timestamp. It supports audit and debugging
 without returning the uploaded file or weakening API-key protection.
+
+
+## Why use a compound cursor for import history?
+
+Timestamps alone are not guaranteed to be unique. Ordering by `createdAt` and
+UUID gives every batch a deterministic position. Passing the final pair from
+one response into the next request avoids offset shifts when a newer import is
+committed during traversal.

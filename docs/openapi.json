@@ -90,6 +90,63 @@
             }
           }
         }
+      },
+      "get": {
+        "summary": "List recent import provenance",
+        "description": "Newest-first keyset pagination. Supply both cursor fields from the last returned import.",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "beforeCreatedAt",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive timestamp cursor; must be paired with beforeId.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "beforeId",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive UUID tie-breaker; must be paired with beforeCreatedAt.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest-first import metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportView"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid size or incomplete cursor"
+          },
+          "401": {
+            "description": "Problem Details"
+          }
+        }
       }
     },
     "/api/v1/imports/{id}": {

@@ -76,6 +76,46 @@ public class SalesService {
     }
 
     @Transactional(readOnly = true)
+    public List<ImportView> imports(
+            OffsetDateTime beforeCreatedAt,
+            UUID beforeId,
+            int size) {
+
+        if (size < 1 || size > 100) {
+            throw new IllegalArgumentException("size must be 1–100.");
+        }
+
+        boolean hasCursor = beforeCreatedAt != null || beforeId != null;
+        if (hasCursor && (beforeCreatedAt == null || beforeId == null)) {
+            throw new IllegalArgumentException(
+                    "beforeCreatedAt and beforeId must be supplied together.");
+        }
+
+        String cursorClause = hasCursor
+                ? " WHERE (created_at, id) < (?, ?)"
+                : "";
+        List<Object> parameters = new ArrayList<>();
+        if (hasCursor) {
+            parameters.add(beforeCreatedAt);
+            parameters.add(beforeId);
+        }
+        parameters.add(size);
+
+        return database.query("""
+                SELECT id, row_count, sha256, created_at
+                FROM import_batch%s
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """.formatted(cursorClause),
+                (row, index) -> new ImportView(
+                        row.getObject("id", UUID.class),
+                        row.getInt("row_count"),
+                        row.getString("sha256").strip(),
+                        row.getObject("created_at", OffsetDateTime.class)),
+                parameters.toArray());
+    }
+
+    @Transactional(readOnly = true)
     public List<SaleView> sales(
             LocalDate from, LocalDate to, String category,
             LocalDate afterSoldAt, Long afterId, int page, int size) {

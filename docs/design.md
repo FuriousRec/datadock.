@@ -63,3 +63,12 @@ Every sale response includes the UUID of its import batch. The authenticated
 count, byte-level SHA-256 and database creation timestamp. This makes the API's
 lineage information usable without exposing database access. Missing valid UUIDs
 return `404`; malformed UUID paths remain client errors.
+
+
+## Import history pagination
+
+The authenticated `GET /api/v1/imports` endpoint lists newest batches first.
+It uses the compound cursor `(createdAt, id)` instead of an offset so imports
+committed between requests do not shift later pages. Both cursor fields are
+required together, the page size is capped at 100, and a matching descending
+database index keeps the query bounded as the history grows.

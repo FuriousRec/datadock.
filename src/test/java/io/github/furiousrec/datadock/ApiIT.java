@@ -87,6 +87,54 @@ class ApiIT {
     }
 
     @Test
+    void listsRecentImportsWithStableCursorPagination() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+        String secondCsv = "sold_at,sku,category,quantity,unit_price\n"
+                + "2026-10-01,C,Accessories,1,5.00\n";
+        assertEquals(201, upload(secondCsv).statusCode());
+
+        var olderId = database.queryForObject(
+                "SELECT id FROM import_batch WHERE row_count = 2",
+                java.util.UUID.class);
+        var newerId = database.queryForObject(
+                "SELECT id FROM import_batch WHERE row_count = 1",
+                java.util.UUID.class);
+        database.update("""
+                UPDATE import_batch SET created_at = '2026-10-01T00:00:00Z'
+                WHERE id = ?
+                """, olderId);
+        database.update("""
+                UPDATE import_batch SET created_at = '2026-10-02T00:00:00Z'
+                WHERE id = ?
+                """, newerId);
+
+        var firstPage = get("/api/v1/imports?size=1", true);
+        assertEquals(200, firstPage.statusCode());
+        assertTrue(firstPage.body().contains("\"id\":\"" + newerId + "\""),
+                firstPage.body());
+        assertFalse(firstPage.body().contains("\"id\":\"" + olderId + "\""),
+                firstPage.body());
+
+        var nextPage = get("/api/v1/imports?size=1"
+                + "&beforeCreatedAt=2026-10-02T00:00:00Z"
+                + "&beforeId=" + newerId, true);
+        assertEquals(200, nextPage.statusCode());
+        assertTrue(nextPage.body().contains("\"id\":\"" + olderId + "\""),
+                nextPage.body());
+        assertFalse(nextPage.body().contains("\"id\":\"" + newerId + "\""),
+                nextPage.body());
+
+        assertEquals(400, get(
+                "/api/v1/imports?beforeId=" + newerId, true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/imports?beforeCreatedAt=2026-10-02T00:00:00Z",
+                true).statusCode());
+        assertEquals(400, get("/api/v1/imports?size=0", true).statusCode());
+        assertEquals(400, get("/api/v1/imports?size=101", true).statusCode());
+        assertEquals(401, get("/api/v1/imports", false).statusCode());
+    }
+
+    @Test
     void rejectsInvalidRowsWithoutPartialWrites() throws Exception {
         assertEquals(400, upload(CSV + "2026-09-02,C,Accessories,-1,1\n").statusCode());
         assertEquals(0, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));

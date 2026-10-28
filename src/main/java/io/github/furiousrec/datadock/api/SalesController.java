@@ -6,6 +6,8 @@ import io.github.furiousrec.datadock.service.SalesService;
 import io.github.furiousrec.datadock.service.SalesService.*;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -29,8 +31,18 @@ public class SalesController {
         return sales.importCsv(file.getBytes());
     }
 
+    @GetMapping("/imports")
+    public List<ImportView> imports(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            OffsetDateTime beforeCreatedAt,
+            @RequestParam(required = false) UUID beforeId,
+            @RequestParam(defaultValue = "50") int size) {
+        return sales.imports(beforeCreatedAt, beforeId, size);
+    }
+
     @GetMapping("/imports/{id}")
-    public ImportView importById(@PathVariable java.util.UUID id) {
+    public ImportView importById(@PathVariable UUID id) {
         return sales.importById(id);
     }
 
