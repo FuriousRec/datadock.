@@ -412,6 +412,53 @@
           }
         }
       }
+    },
+    "/api/v1/analytics/daily": {
+      "get": {
+        "summary": "Return chronological daily sales analytics",
+        "description": "Groups sale rows, units and EUR revenue by soldAt. Days with no sales are omitted.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Inclusive ISO start date; default 0001-01-01"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Inclusive ISO end date; default 9999-12-31"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chronological daily aggregates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DailySummary"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details"
+          },
+          "401": {
+            "description": "Problem Details"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -526,6 +573,35 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "DailySummary": {
+        "type": "object",
+        "required": [
+          "date",
+          "rows",
+          "units",
+          "revenue"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "units": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "revenue": {
+            "type": "number",
+            "minimum": 0
           }
         }
       }

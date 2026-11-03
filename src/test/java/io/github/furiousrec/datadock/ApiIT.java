@@ -135,6 +135,33 @@ class ApiIT {
     }
 
     @Test
+    void returnsDailyAnalyticsInChronologicalOrder() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+
+        var response = get(
+                "/api/v1/analytics/daily?from=2026-09-01&to=2026-09-30",
+                true);
+        assertEquals(200, response.statusCode());
+        assertEquals(
+                "[{\"date\":\"2026-09-01\",\"rows\":1,\"units\":2,"
+                        + "\"revenue\":99.80},"
+                        + "{\"date\":\"2026-09-02\",\"rows\":1,\"units\":1,"
+                        + "\"revenue\":199.00}]",
+                response.body());
+
+        var empty = get(
+                "/api/v1/analytics/daily?from=2026-10-01&to=2026-10-31",
+                true);
+        assertEquals(200, empty.statusCode());
+        assertEquals("[]", empty.body());
+
+        assertEquals(400, get(
+                "/api/v1/analytics/daily?from=2026-10-02&to=2026-10-01",
+                true).statusCode());
+        assertEquals(401, get("/api/v1/analytics/daily", false).statusCode());
+    }
+
+    @Test
     void rejectsInvalidRowsWithoutPartialWrites() throws Exception {
         assertEquals(400, upload(CSV + "2026-09-02,C,Accessories,-1,1\n").statusCode());
         assertEquals(0, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));

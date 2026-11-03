@@ -72,3 +72,12 @@ It uses the compound cursor `(createdAt, id)` instead of an offset so imports
 committed between requests do not shift later pages. Both cursor fields are
 required together, the page size is capped at 100, and a matching descending
 database index keeps the query bounded as the history grows.
+
+
+## Daily analytics
+
+The authenticated `GET /api/v1/analytics/daily` endpoint groups rows, units and EUR
+revenue by `sold_at` inside an inclusive date range. PostgreSQL performs the grouping
+and returns days in ascending order, so clients can render a trend without loading raw
+sales or reimplementing monetary aggregation. Days with no sales are omitted rather
+than synthesized; a client that needs a continuous calendar can fill those gaps explicitly.
