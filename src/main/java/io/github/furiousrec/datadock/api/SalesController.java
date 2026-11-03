@@ -62,6 +62,15 @@ public class SalesController {
         return sales.summary(from, to);
     }
 
+    @GetMapping("/analytics/daily")
+    public List<DailySummary> daily(
+            @RequestParam(defaultValue = "0001-01-01")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(defaultValue = "9999-12-31")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return sales.daily(from, to);
+    }
+
     @GetMapping("/analytics/categories")
     public List<CategorySummary> categories(@RequestParam(defaultValue = "0001-01-01") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(defaultValue = "9999-12-31") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {

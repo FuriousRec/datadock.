@@ -47,4 +47,11 @@ status, response = request('/api/v1/analytics/summary?from=2026-09-01&to=2026-09
 assert status == 200, (status, response)
 summary = json.loads(response, parse_float=Decimal)
 assert summary == {'rows': 3, 'units': 6, 'revenue': Decimal('357.30'), 'currency': 'EUR'}, summary
-print('PASS: packaged API readiness, authentication, import, duplicate rejection, 3 rows / 6 units / EUR 357.30')
+status, response = request('/api/v1/analytics/daily?from=2026-09-01&to=2026-09-30')
+assert status == 200, (status, response)
+daily = json.loads(response, parse_float=Decimal)
+assert daily == [
+    {'date': '2026-09-01', 'rows': 2, 'units': 3, 'revenue': Decimal('298.80')},
+    {'date': '2026-09-02', 'rows': 1, 'units': 3, 'revenue': Decimal('58.50')},
+], daily
+print('PASS: packaged API readiness, authentication, import, duplicate rejection, summary and daily analytics')

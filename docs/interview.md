@@ -12,7 +12,8 @@ throughput or cloud operation that has not happened.
 5. Why is database readiness different from application liveness?
 6. Which identity deploys the app, and which identity pulls its image?
 7. Why can a previous container image be incompatible with a new database migration?
-8. What would you change for ten-million-row files or multiple customer accounts?
+8. Why aggregate daily trends in PostgreSQL instead of loading every sale into Java?
+9. What would you change for ten-million-row files or multiple customer accounts?
 
 ## Honest milestone wording
 
@@ -45,3 +46,11 @@ Timestamps alone are not guaranteed to be unique. Ordering by `createdAt` and
 UUID gives every batch a deterministic position. Passing the final pair from
 one response into the next request avoids offset shifts when a newer import is
 committed during traversal.
+
+
+## Why expose daily analytics?
+
+A summary answers “how much,” but not “when.” The daily endpoint lets clients plot a
+trend without downloading every sale. PostgreSQL groups exact NUMERIC values close to
+the data and orders the result deterministically. Empty days are omitted so the API does
+not invent observations; charting clients can add zero-valued calendar gaps if needed.

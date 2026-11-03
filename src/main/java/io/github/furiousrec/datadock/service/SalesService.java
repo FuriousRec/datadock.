@@ -33,6 +33,7 @@ public class SalesService {
     public record SaleView(long id, UUID importId, LocalDate soldAt, String sku,
             String category, int quantity, BigDecimal unitPrice) {}
     public record Summary(long rows, long units, BigDecimal revenue, String currency) {}
+    public record DailySummary(LocalDate date, long rows, long units, BigDecimal revenue) {}
     public record CategorySummary(String category, long units, BigDecimal revenue) {}
 
     @Transactional
@@ -172,6 +173,22 @@ public class SalesService {
                 FROM sale WHERE sold_at BETWEEN ? AND ?
                 """, (row, index) -> new Summary(row.getLong("rows"), row.getLong("units"),
                 row.getBigDecimal("revenue"), "EUR"), Date.valueOf(from), Date.valueOf(to));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailySummary> daily(LocalDate from, LocalDate to) {
+        checkRange(from, to);
+        return database.query("""
+                SELECT sold_at, COUNT(*) AS rows, SUM(quantity) AS units,
+                  SUM(quantity * unit_price) AS revenue
+                FROM sale WHERE sold_at BETWEEN ? AND ?
+                GROUP BY sold_at ORDER BY sold_at
+                """, (row, index) -> new DailySummary(
+                        row.getDate("sold_at").toLocalDate(),
+                        row.getLong("rows"),
+                        row.getLong("units"),
+                        row.getBigDecimal("revenue")),
+                Date.valueOf(from), Date.valueOf(to));
     }
 
     @Transactional(readOnly = true)
