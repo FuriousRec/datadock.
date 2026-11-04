@@ -5,7 +5,7 @@ RUN mvn -B dependency:go-offline
 COPY src ./src
 RUN mvn -B package
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app app
 COPY --from=build --chown=app:app /build/target/datadock-0.1.0.jar app.jar
