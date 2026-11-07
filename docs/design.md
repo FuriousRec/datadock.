@@ -81,3 +81,12 @@ revenue by `sold_at` inside an inclusive date range. PostgreSQL performs the gro
 and returns days in ascending order, so clients can render a trend without loading raw
 sales or reimplementing monetary aggregation. Days with no sales are omitted rather
 than synthesized; a client that needs a continuous calendar can fill those gaps explicitly.
+
+
+## Product ranking
+
+The authenticated `GET /api/v1/analytics/products` endpoint ranks SKUs by exact EUR
+revenue inside an inclusive date range. PostgreSQL groups repeated SKU rows and computes
+row count, units and revenue without transferring raw sales to the application. The limit
+is bounded to 1–100, and equal-revenue products use ascending SKU as a deterministic
+tie-breaker so identical data produces stable output.
