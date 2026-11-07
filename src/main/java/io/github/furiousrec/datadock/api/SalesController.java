@@ -76,4 +76,14 @@ public class SalesController {
             @RequestParam(defaultValue = "9999-12-31") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return sales.categories(from, to);
     }
+
+    @GetMapping("/analytics/products")
+    public List<ProductSummary> products(
+            @RequestParam(defaultValue = "0001-01-01")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(defaultValue = "9999-12-31")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "10") int limit) {
+        return sales.products(from, to, limit);
+    }
 }

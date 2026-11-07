@@ -162,6 +162,56 @@ class ApiIT {
     }
 
     @Test
+    void ranksProductsByExactRevenueWithDeterministicTies() throws Exception {
+        String productCsv = "sold_at,sku,category,quantity,unit_price\n"
+                + "2026-09-01,A,Accessories,2,10.00\n"
+                + "2026-09-02,A,Accessories,1,5.00\n"
+                + "2026-09-01,C,Displays,2,15.00\n"
+                + "2026-09-01,B,Displays,1,30.00\n";
+        assertEquals(201, upload(productCsv).statusCode());
+
+        var all = get(
+                "/api/v1/analytics/products?from=2026-09-01&to=2026-09-30",
+                true);
+        assertEquals(200, all.statusCode());
+        assertEquals(
+                "[{\"sku\":\"B\",\"rows\":1,\"units\":1,\"revenue\":30.00},"
+                        + "{\"sku\":\"C\",\"rows\":1,\"units\":2,\"revenue\":30.00},"
+                        + "{\"sku\":\"A\",\"rows\":2,\"units\":3,\"revenue\":25.00}]",
+                all.body());
+
+        var limited = get("/api/v1/analytics/products?limit=2", true);
+        assertEquals(200, limited.statusCode());
+        assertFalse(limited.body().contains("\"sku\":\"A\""), limited.body());
+        assertTrue(limited.body().contains("\"sku\":\"B\""), limited.body());
+        assertTrue(limited.body().contains("\"sku\":\"C\""), limited.body());
+
+        var filtered = get(
+                "/api/v1/analytics/products?from=2026-09-02&to=2026-09-02",
+                true);
+        assertEquals(200, filtered.statusCode());
+        assertEquals(
+                "[{\"sku\":\"A\",\"rows\":1,\"units\":1,\"revenue\":5.00}]",
+                filtered.body());
+
+        var empty = get(
+                "/api/v1/analytics/products?from=2026-10-01&to=2026-10-31",
+                true);
+        assertEquals(200, empty.statusCode());
+        assertEquals("[]", empty.body());
+
+        assertEquals(400, get(
+                "/api/v1/analytics/products?from=2026-09-02&to=2026-09-01",
+                true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/products?limit=0", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/products?limit=101", true).statusCode());
+        assertEquals(401, get(
+                "/api/v1/analytics/products", false).statusCode());
+    }
+
+    @Test
     void rejectsInvalidRowsWithoutPartialWrites() throws Exception {
         assertEquals(400, upload(CSV + "2026-09-02,C,Accessories,-1,1\n").statusCode());
         assertEquals(0, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));

@@ -14,6 +14,7 @@ throughput or cloud operation that has not happened.
 7. Why can a previous container image be incompatible with a new database migration?
 8. Why aggregate daily trends in PostgreSQL instead of loading every sale into Java?
 9. What would you change for ten-million-row files or multiple customer accounts?
+10. Why does the product ranking use `ORDER BY revenue DESC, sku` instead of revenue alone?
 
 ## Honest milestone wording
 
@@ -54,3 +55,10 @@ A summary answers “how much,” but not “when.” The daily endpoint lets cl
 trend without downloading every sale. PostgreSQL groups exact NUMERIC values close to
 the data and orders the result deterministically. Empty days are omitted so the API does
 not invent observations; charting clients can add zero-valued calendar gaps if needed.
+
+
+## Why aggregate top products in PostgreSQL?
+
+The endpoint answers a common business question without returning every sale to the client.
+PostgreSQL groups repeated SKU rows and sums NUMERIC revenue exactly. A bounded limit controls
+response and database work, while the SKU tie-breaker makes equal-revenue rankings reproducible.

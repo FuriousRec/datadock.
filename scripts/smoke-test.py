@@ -54,4 +54,11 @@ assert daily == [
     {'date': '2026-09-01', 'rows': 2, 'units': 3, 'revenue': Decimal('298.80')},
     {'date': '2026-09-02', 'rows': 1, 'units': 3, 'revenue': Decimal('58.50')},
 ], daily
-print('PASS: packaged API readiness, authentication, import, duplicate rejection, summary and daily analytics')
+status, response = request('/api/v1/analytics/products?from=2026-09-01&to=2026-09-30&limit=2')
+assert status == 200, (status, response)
+products = json.loads(response, parse_float=Decimal)
+assert products == [
+    {'sku': 'MON-001', 'rows': 1, 'units': 1, 'revenue': Decimal('199.00')},
+    {'sku': 'KB-001', 'rows': 1, 'units': 2, 'revenue': Decimal('99.80')},
+], products
+print('PASS: packaged API readiness, authentication, import, duplicate rejection and analytics')

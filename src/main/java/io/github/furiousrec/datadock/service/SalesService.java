@@ -35,6 +35,7 @@ public class SalesService {
     public record Summary(long rows, long units, BigDecimal revenue, String currency) {}
     public record DailySummary(LocalDate date, long rows, long units, BigDecimal revenue) {}
     public record CategorySummary(String category, long units, BigDecimal revenue) {}
+    public record ProductSummary(String sku, long rows, long units, BigDecimal revenue) {}
 
     @Transactional
     public ImportResult importCsv(byte[] bytes) {
@@ -200,6 +201,26 @@ public class SalesService {
                 GROUP BY category ORDER BY revenue DESC, category
                 """, (row, index) -> new CategorySummary(row.getString("category"),
                 row.getLong("units"), row.getBigDecimal("revenue")), Date.valueOf(from), Date.valueOf(to));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductSummary> products(LocalDate from, LocalDate to, int limit) {
+        checkRange(from, to);
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("limit must be 1–100.");
+        }
+        return database.query("""
+                SELECT sku, COUNT(*) AS rows, SUM(quantity) AS units,
+                  SUM(quantity * unit_price) AS revenue
+                FROM sale WHERE sold_at BETWEEN ? AND ?
+                GROUP BY sku ORDER BY revenue DESC, sku
+                LIMIT ?
+                """, (row, index) -> new ProductSummary(
+                        row.getString("sku"),
+                        row.getLong("rows"),
+                        row.getLong("units"),
+                        row.getBigDecimal("revenue")),
+                Date.valueOf(from), Date.valueOf(to), limit);
     }
 
     private static String normalizeCategory(String category) {
