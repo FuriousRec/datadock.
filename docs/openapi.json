@@ -416,7 +416,7 @@
     "/api/v1/analytics/daily": {
       "get": {
         "summary": "Return chronological daily sales analytics",
-        "description": "Groups sale rows, units and EUR revenue by soldAt. Days with no sales are omitted.",
+        "description": "Groups sale rows, units and EUR revenue by soldAt, optionally for one exact category. Days with no sales are omitted.",
         "parameters": [
           {
             "name": "from",
@@ -435,6 +435,17 @@
               "format": "date"
             },
             "description": "Inclusive ISO end date; default 9999-12-31"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "description": "Optional case-sensitive exact category match; surrounding whitespace is stripped"
           }
         ],
         "responses": {

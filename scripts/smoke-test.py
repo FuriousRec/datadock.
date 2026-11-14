@@ -54,6 +54,13 @@ assert daily == [
     {'date': '2026-09-01', 'rows': 2, 'units': 3, 'revenue': Decimal('298.80')},
     {'date': '2026-09-02', 'rows': 1, 'units': 3, 'revenue': Decimal('58.50')},
 ], daily
+status, response = request('/api/v1/analytics/daily?from=2026-09-01&to=2026-09-30&category=Accessories')
+assert status == 200, (status, response)
+category_daily = json.loads(response, parse_float=Decimal)
+assert category_daily == [
+    {'date': '2026-09-01', 'rows': 1, 'units': 2, 'revenue': Decimal('99.80')},
+    {'date': '2026-09-02', 'rows': 1, 'units': 3, 'revenue': Decimal('58.50')},
+], category_daily
 status, response = request('/api/v1/analytics/products?from=2026-09-01&to=2026-09-30&limit=2')
 assert status == 200, (status, response)
 products = json.loads(response, parse_float=Decimal)
