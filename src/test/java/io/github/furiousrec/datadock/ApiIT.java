@@ -149,6 +149,22 @@ class ApiIT {
                         + "\"revenue\":199.00}]",
                 response.body());
 
+        var accessories = get(
+                "/api/v1/analytics/daily?from=2026-09-01&to=2026-09-30"
+                        + "&category=Accessories",
+                true);
+        assertEquals(200, accessories.statusCode());
+        assertEquals(
+                "[{\"date\":\"2026-09-01\",\"rows\":1,\"units\":2,"
+                        + "\"revenue\":99.80}]",
+                accessories.body());
+
+        var missingCategory = get(
+                "/api/v1/analytics/daily?category=Missing",
+                true);
+        assertEquals(200, missingCategory.statusCode());
+        assertEquals("[]", missingCategory.body());
+
         var empty = get(
                 "/api/v1/analytics/daily?from=2026-10-01&to=2026-10-31",
                 true);
@@ -157,6 +173,11 @@ class ApiIT {
 
         assertEquals(400, get(
                 "/api/v1/analytics/daily?from=2026-10-02&to=2026-10-01",
+                true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/daily?category=%20", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/daily?category=" + "x".repeat(81),
                 true).statusCode());
         assertEquals(401, get("/api/v1/analytics/daily", false).statusCode());
     }

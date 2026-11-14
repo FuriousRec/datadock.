@@ -81,6 +81,8 @@ revenue by `sold_at` inside an inclusive date range. PostgreSQL performs the gro
 and returns days in ascending order, so clients can render a trend without loading raw
 sales or reimplementing monetary aggregation. Days with no sales are omitted rather
 than synthesized; a client that needs a continuous calendar can fill those gaps explicitly.
+An optional exact category filter uses the same validated, parameterized policy as sales
+browsing, so clients can request a category trend without downloading raw sale rows.
 
 
 ## Product ranking

@@ -177,19 +177,29 @@ public class SalesService {
     }
 
     @Transactional(readOnly = true)
-    public List<DailySummary> daily(LocalDate from, LocalDate to) {
+    public List<DailySummary> daily(
+            LocalDate from,
+            LocalDate to,
+            String category) {
         checkRange(from, to);
+        String categoryFilter = normalizeCategory(category);
+        String categoryClause = categoryFilter == null ? "" : " AND category = ?";
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(Date.valueOf(from));
+        parameters.add(Date.valueOf(to));
+        if (categoryFilter != null) parameters.add(categoryFilter);
+
         return database.query("""
                 SELECT sold_at, COUNT(*) AS rows, SUM(quantity) AS units,
                   SUM(quantity * unit_price) AS revenue
-                FROM sale WHERE sold_at BETWEEN ? AND ?
+                FROM sale WHERE sold_at BETWEEN ? AND ?%s
                 GROUP BY sold_at ORDER BY sold_at
-                """, (row, index) -> new DailySummary(
+                """.formatted(categoryClause), (row, index) -> new DailySummary(
                         row.getDate("sold_at").toLocalDate(),
                         row.getLong("rows"),
                         row.getLong("units"),
                         row.getBigDecimal("revenue")),
-                Date.valueOf(from), Date.valueOf(to));
+                parameters.toArray());
     }
 
     @Transactional(readOnly = true)

@@ -80,7 +80,7 @@ Every `/api/v1/*` endpoint requires `X-API-Key`. Dates are inclusive ISO dates.
 | GET | /api/v1/imports/{id} | Resolve an import UUID to its row count, SHA-256 and creation timestamp |
 | GET | /api/v1/sales | `from`, `to`, optional exact `category`, `page`/`size`, or stable `afterSoldAt` + `afterId` cursor |
 | GET | /api/v1/analytics/summary | Row count, total units and EUR revenue for `from` / `to` |
-| GET | /api/v1/analytics/daily | Chronological daily rows, units and EUR revenue for `from` / `to` |
+| GET | /api/v1/analytics/daily | Chronological daily rows, units and EUR revenue for `from` / `to`, optionally filtered by exact `category` |
 | GET | /api/v1/analytics/products | Top SKUs by exact EUR revenue for `from` / `to`, with bounded `limit` |
 | GET | /api/v1/analytics/categories | Revenue and units grouped by category |
 | GET | /actuator/health | Public health status, with details hidden |
@@ -131,7 +131,7 @@ mvn verify
 ```
 
 It covers HTTP authentication, CSV import history and provenance lookup, date/category filtering,
-daily analytics ordering, deterministic product ranking, invalid input, duplicate uploads, and simultaneous
+daily analytics ordering and category filtering, deterministic product ranking, invalid input, duplicate uploads, and simultaneous
 identical uploads. CI runs verification before building the image.
 
 The same 33 domain checks can also run without Maven or downloaded dependencies:
