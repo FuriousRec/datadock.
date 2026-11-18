@@ -214,23 +214,36 @@ public class SalesService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductSummary> products(LocalDate from, LocalDate to, int limit) {
+    public List<ProductSummary> products(
+            LocalDate from,
+            LocalDate to,
+            String category,
+            int limit) {
         checkRange(from, to);
         if (limit < 1 || limit > 100) {
             throw new IllegalArgumentException("limit must be 1–100.");
         }
+
+        String categoryFilter = normalizeCategory(category);
+        String categoryClause = categoryFilter == null ? "" : " AND category = ?";
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(Date.valueOf(from));
+        parameters.add(Date.valueOf(to));
+        if (categoryFilter != null) parameters.add(categoryFilter);
+        parameters.add(limit);
+
         return database.query("""
                 SELECT sku, COUNT(*) AS rows, SUM(quantity) AS units,
                   SUM(quantity * unit_price) AS revenue
-                FROM sale WHERE sold_at BETWEEN ? AND ?
+                FROM sale WHERE sold_at BETWEEN ? AND ?%s
                 GROUP BY sku ORDER BY revenue DESC, sku
                 LIMIT ?
-                """, (row, index) -> new ProductSummary(
+                """.formatted(categoryClause), (row, index) -> new ProductSummary(
                         row.getString("sku"),
                         row.getLong("rows"),
                         row.getLong("units"),
                         row.getBigDecimal("revenue")),
-                Date.valueOf(from), Date.valueOf(to), limit);
+                parameters.toArray());
     }
 
     private static String normalizeCategory(String category) {

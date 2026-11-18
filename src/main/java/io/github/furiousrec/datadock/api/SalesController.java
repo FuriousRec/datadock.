@@ -84,7 +84,8 @@ public class SalesController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(defaultValue = "9999-12-31")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "10") int limit) {
-        return sales.products(from, to, limit);
+        return sales.products(from, to, category, limit);
     }
 }

@@ -215,6 +215,29 @@ class ApiIT {
                 "[{\"sku\":\"A\",\"rows\":1,\"units\":1,\"revenue\":5.00}]",
                 filtered.body());
 
+        var displays = get(
+                "/api/v1/analytics/products?category=Displays",
+                true);
+        assertEquals(200, displays.statusCode());
+        assertEquals(
+                "[{\"sku\":\"B\",\"rows\":1,\"units\":1,\"revenue\":30.00},"
+                        + "{\"sku\":\"C\",\"rows\":1,\"units\":2,\"revenue\":30.00}]",
+                displays.body());
+
+        var accessories = get(
+                "/api/v1/analytics/products?category=Accessories",
+                true);
+        assertEquals(200, accessories.statusCode());
+        assertEquals(
+                "[{\"sku\":\"A\",\"rows\":2,\"units\":3,\"revenue\":25.00}]",
+                accessories.body());
+
+        var missingCategory = get(
+                "/api/v1/analytics/products?category=Missing",
+                true);
+        assertEquals(200, missingCategory.statusCode());
+        assertEquals("[]", missingCategory.body());
+
         var empty = get(
                 "/api/v1/analytics/products?from=2026-10-01&to=2026-10-31",
                 true);
@@ -228,6 +251,11 @@ class ApiIT {
                 "/api/v1/analytics/products?limit=0", true).statusCode());
         assertEquals(400, get(
                 "/api/v1/analytics/products?limit=101", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/products?category=%20", true).statusCode());
+        assertEquals(400, get(
+                "/api/v1/analytics/products?category=" + "x".repeat(81),
+                true).statusCode());
         assertEquals(401, get(
                 "/api/v1/analytics/products", false).statusCode());
     }

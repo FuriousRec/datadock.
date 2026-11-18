@@ -91,4 +91,6 @@ The authenticated `GET /api/v1/analytics/products` endpoint ranks SKUs by exact 
 revenue inside an inclusive date range. PostgreSQL groups repeated SKU rows and computes
 row count, units and revenue without transferring raw sales to the application. The limit
 is bounded to 1–100, and equal-revenue products use ascending SKU as a deterministic
-tie-breaker so identical data produces stable output.
+tie-breaker so identical data produces stable output. An optional exact category filter
+is validated before becoming a bound SQL parameter, so clients can compare leaders within
+one product segment without downloading and re-aggregating raw sales.

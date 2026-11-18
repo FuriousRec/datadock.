@@ -68,4 +68,11 @@ assert products == [
     {'sku': 'MON-001', 'rows': 1, 'units': 1, 'revenue': Decimal('199.00')},
     {'sku': 'KB-001', 'rows': 1, 'units': 2, 'revenue': Decimal('99.80')},
 ], products
+status, response = request('/api/v1/analytics/products?from=2026-09-01&to=2026-09-30&category=Accessories')
+assert status == 200, (status, response)
+category_products = json.loads(response, parse_float=Decimal)
+assert category_products == [
+    {'sku': 'KB-001', 'rows': 1, 'units': 2, 'revenue': Decimal('99.80')},
+    {'sku': 'MOUSE-001', 'rows': 1, 'units': 3, 'revenue': Decimal('58.50')},
+], category_products
 print('PASS: packaged API readiness, authentication, import, duplicate rejection and analytics')
