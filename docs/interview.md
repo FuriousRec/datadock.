@@ -62,3 +62,5 @@ not invent observations; charting clients can add zero-valued calendar gaps if n
 The endpoint answers a common business question without returning every sale to the client.
 PostgreSQL groups repeated SKU rows and sums NUMERIC revenue exactly. A bounded limit controls
 response and database work, while the SKU tie-breaker makes equal-revenue rankings reproducible.
+The optional category is normalized and passed as a prepared-statement parameter rather than
+being interpolated into SQL, preserving exact-match behavior without creating an injection path.
