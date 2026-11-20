@@ -6,7 +6,6 @@ import io.github.furiousrec.datadock.domain.SalesCsv;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -50,7 +49,8 @@ public class SalesService {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """, sales, 500, (statement, sale) -> {
             statement.setObject(1, importId);
-            statement.setDate(2, Date.valueOf(sale.soldAt()));
+            // Keep ISO dates out of java.sql.Date's Julian/Gregorian cutover.
+            statement.setObject(2, sale.soldAt());
             statement.setString(3, sale.sku());
             statement.setString(4, sale.category());
             statement.setInt(5, sale.quantity());
@@ -142,11 +142,11 @@ public class SalesService {
         String cursorClause = hasCursor ? " AND (sold_at, id) > (?, ?)" : "";
         String paginationClause = hasCursor ? " LIMIT ?" : " LIMIT ? OFFSET ?";
         List<Object> parameters = new ArrayList<>();
-        parameters.add(Date.valueOf(from));
-        parameters.add(Date.valueOf(to));
+        parameters.add(from);
+        parameters.add(to);
         if (categoryFilter != null) parameters.add(categoryFilter);
         if (hasCursor) {
-            parameters.add(Date.valueOf(afterSoldAt));
+            parameters.add(afterSoldAt);
             parameters.add(afterId);
         }
         parameters.add(size);
@@ -159,7 +159,7 @@ public class SalesService {
                 """.formatted(categoryClause, cursorClause, paginationClause),
                 (row, index) -> new SaleView(row.getLong("id"),
                         row.getObject("import_id", UUID.class),
-                        row.getDate("sold_at").toLocalDate(),
+                        row.getObject("sold_at", LocalDate.class),
                         row.getString("sku"), row.getString("category"),
                         row.getInt("quantity"), row.getBigDecimal("unit_price")),
                 parameters.toArray());
@@ -173,7 +173,7 @@ public class SalesService {
                   COALESCE(SUM(quantity * unit_price), 0) AS revenue
                 FROM sale WHERE sold_at BETWEEN ? AND ?
                 """, (row, index) -> new Summary(row.getLong("rows"), row.getLong("units"),
-                row.getBigDecimal("revenue"), "EUR"), Date.valueOf(from), Date.valueOf(to));
+                row.getBigDecimal("revenue"), "EUR"), from, to);
     }
 
     @Transactional(readOnly = true)
@@ -185,8 +185,8 @@ public class SalesService {
         String categoryFilter = normalizeCategory(category);
         String categoryClause = categoryFilter == null ? "" : " AND category = ?";
         List<Object> parameters = new ArrayList<>();
-        parameters.add(Date.valueOf(from));
-        parameters.add(Date.valueOf(to));
+        parameters.add(from);
+        parameters.add(to);
         if (categoryFilter != null) parameters.add(categoryFilter);
 
         return database.query("""
@@ -195,7 +195,7 @@ public class SalesService {
                 FROM sale WHERE sold_at BETWEEN ? AND ?%s
                 GROUP BY sold_at ORDER BY sold_at
                 """.formatted(categoryClause), (row, index) -> new DailySummary(
-                        row.getDate("sold_at").toLocalDate(),
+                        row.getObject("sold_at", LocalDate.class),
                         row.getLong("rows"),
                         row.getLong("units"),
                         row.getBigDecimal("revenue")),
@@ -210,7 +210,7 @@ public class SalesService {
                 FROM sale WHERE sold_at BETWEEN ? AND ?
                 GROUP BY category ORDER BY revenue DESC, category
                 """, (row, index) -> new CategorySummary(row.getString("category"),
-                row.getLong("units"), row.getBigDecimal("revenue")), Date.valueOf(from), Date.valueOf(to));
+                row.getLong("units"), row.getBigDecimal("revenue")), from, to);
     }
 
     @Transactional(readOnly = true)
@@ -227,8 +227,8 @@ public class SalesService {
         String categoryFilter = normalizeCategory(category);
         String categoryClause = categoryFilter == null ? "" : " AND category = ?";
         List<Object> parameters = new ArrayList<>();
-        parameters.add(Date.valueOf(from));
-        parameters.add(Date.valueOf(to));
+        parameters.add(from);
+        parameters.add(to);
         if (categoryFilter != null) parameters.add(categoryFilter);
         parameters.add(limit);
 

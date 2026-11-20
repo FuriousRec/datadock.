@@ -112,6 +112,13 @@ blank records, malformed UTF-8, NULs, malformed quoting and inconsistent column 
 Quoting is parsed across record separators, but multiline SKU/category values are rejected
 by label validation. Prices use a decimal dot. All data is assumed to be EUR.
 
+Dates use the ISO proleptic Gregorian calendar throughout CSV parsing, JDBC and
+PostgreSQL. Valid dates such as `1582-10-10` retain their exact value during
+imports, date filtering, analytics and cursor pagination. The service binds and
+reads `LocalDate` directly instead of converting through the legacy
+`java.sql.Date` calendar. This prevents future date shifts; it does not repair
+values already stored by older versions.
+
 Deduplication is **file-byte based**, not business-event based. A reformatted file or
 overlapping exports can double-count sales. Each row is treated as a separate sale;
 duplicate rows inside one file are allowed. This limitation is intentional and documented.

@@ -59,6 +59,64 @@ class ApiIT {
     }
 
     @Test
+    void preservesIsoDatesAcrossImportReadAndAnalytics() throws Exception {
+        var dates = java.util.List.of("0001-01-01", "1500-03-01", "1582-10-04",
+                "1582-10-05", "1582-10-10", "1582-10-14", "1582-10-15", "9999-12-31");
+        StringBuilder csv = new StringBuilder("sold_at,sku,category,quantity,unit_price\n");
+        for (String date : dates) {
+            csv.append(date).append(",HISTORICAL,History,1,2.50\n");
+        }
+        assertEquals(201, upload(csv.toString()).statusCode());
+        // Read as text to check stored values independently of the JDBC date mapper.
+        assertEquals(dates, database.queryForList(
+                "SELECT sold_at::text FROM sale ORDER BY sold_at", String.class));
+
+        for (String date : dates) {
+            var sales = get("/api/v1/sales?from=" + date + "&to=" + date, true);
+            assertEquals(200, sales.statusCode());
+            assertTrue(sales.body().contains("\"soldAt\":\"" + date + "\""),
+                    sales.body());
+        }
+
+        String range = "?from=1582-10-10&to=1582-10-14";
+        var daily = get("/api/v1/analytics/daily" + range, true);
+        assertEquals(200, daily.statusCode());
+        assertEquals("[{\"date\":\"1582-10-10\",\"rows\":1,\"units\":1,\"revenue\":2.50},"
+                + "{\"date\":\"1582-10-14\",\"rows\":1,\"units\":1,\"revenue\":2.50}]",
+                daily.body());
+        var summary = get("/api/v1/analytics/summary" + range, true);
+        assertEquals(200, summary.statusCode());
+        assertEquals("{\"rows\":2,\"units\":2,\"revenue\":5.00,\"currency\":\"EUR\"}",
+                summary.body());
+        var products = get("/api/v1/analytics/products" + range, true);
+        assertEquals(200, products.statusCode());
+        assertEquals("[{\"sku\":\"HISTORICAL\",\"rows\":2,\"units\":2,\"revenue\":5.00}]",
+                products.body());
+        var categories = get("/api/v1/analytics/categories" + range, true);
+        assertEquals(200, categories.statusCode());
+        assertEquals("[{\"category\":\"History\",\"units\":2,\"revenue\":5.00}]",
+                categories.body());
+    }
+
+    @Test
+    void paginatesExistingIsoDatesWithoutCalendarCutoverShifts() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+        // Seed using SQL date literals so a broken import cannot hide read/query bugs.
+        database.execute("UPDATE sale SET sold_at = DATE '1582-10-10' WHERE sku = 'A'");
+        database.execute("UPDATE sale SET sold_at = DATE '1582-10-11' WHERE sku = 'B'");
+        long firstId = database.queryForObject("SELECT id FROM sale WHERE sku = 'A'", Long.class);
+
+        var first = get("/api/v1/sales?size=1", true);
+        assertEquals(200, first.statusCode());
+        assertTrue(first.body().contains("\"soldAt\":\"1582-10-10\""), first.body());
+        var next = get("/api/v1/sales?size=1&afterSoldAt=1582-10-10&afterId=" + firstId, true);
+        assertEquals(200, next.statusCode());
+        assertTrue(next.body().contains("\"sku\":\"B\""), next.body());
+        assertTrue(next.body().contains("\"soldAt\":\"1582-10-11\""), next.body());
+        assertFalse(next.body().contains("\"sku\":\"A\""), next.body());
+    }
+
+    @Test
     void resolvesSaleImportIdsToProvenanceMetadata() throws Exception {
         assertEquals(201, upload(CSV).statusCode());
         var saleResponse = get("/api/v1/sales?size=1", true);
