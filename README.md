@@ -139,7 +139,9 @@ mvn verify
 
 It covers HTTP authentication, CSV import history and provenance lookup, date/category filtering,
 daily analytics ordering and category filtering, deterministic product ranking and category filtering, invalid input, duplicate uploads, and simultaneous
-identical uploads. CI runs verification before building the image.
+identical uploads. A database-only rejection on row 501 verifies rollback across
+JDBC batches, preservation of earlier imports, safe error responses, and exact-file
+retry after failure. CI runs verification before building the image.
 
 The same 33 domain checks can also run without Maven or downloaded dependencies:
 

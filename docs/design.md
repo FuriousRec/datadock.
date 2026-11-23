@@ -16,6 +16,14 @@ Two identical simultaneous uploads produce one successful import and one duplica
 The duplicate exception escapes the transactional service so Spring can roll it back before
 the HTTP exception handler returns 409.
 
+A PostgreSQL integration regression also forces a database-only constraint failure
+on row 501, after the first 500-row JDBC batch has executed. It verifies that the
+failed import leaves neither sales nor an import/hash record, preserves earlier
+imports, and accepts an exact-file retry once the database constraint is removed.
+The temporary constraint is confined to the disposable test database. The test
+also checks that internal constraint and row details do not appear in the HTTP
+error response.
+
 SHA-256 hashes the original bytes. This is reproducible, but does not deduplicate different
 serializations of the same business data. Production ingestion would normally require a
 source-system identifier and an immutable event ID.
