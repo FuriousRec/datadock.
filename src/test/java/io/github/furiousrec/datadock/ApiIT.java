@@ -326,6 +326,49 @@ class ApiIT {
     }
 
     @Test
+    void databaseFailureAfterFirstBatchRollsBackAndAllowsExactRetry() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+        var originalImports = database.queryForList("SELECT * FROM import_batch ORDER BY id");
+        var originalSales = database.queryForList("SELECT * FROM sale ORDER BY id");
+
+        // All rows pass CSV validation. Row 501 fails only in PostgreSQL, after
+        // the service has executed its first 500-row JDBC batch.
+        StringBuilder csv = new StringBuilder("sold_at,sku,category,quantity,unit_price\n");
+        for (int index = 1; index <= 501; index++) {
+            String sku = index == 501 ? "DATABASE_REJECT" : "ROW_" + index;
+            csv.append("2026-11-01,").append(sku).append(",Rollback,1,2.00\n");
+        }
+        String failedCsv = csv.toString();
+        database.execute("""
+                ALTER TABLE sale ADD CONSTRAINT test_reject_last_row
+                CHECK (sku <> 'DATABASE_REJECT')
+                """);
+        try {
+            var failure = upload(failedCsv);
+            assertEquals(500, failure.statusCode(), failure.body());
+            assertFalse(failure.body().contains("test_reject_last_row"), failure.body());
+            assertFalse(failure.body().contains("DATABASE_REJECT"), failure.body());
+            assertEquals(originalImports,
+                    database.queryForList("SELECT * FROM import_batch ORDER BY id"));
+            assertEquals(originalSales,
+                    database.queryForList("SELECT * FROM sale ORDER BY id"));
+        } finally {
+            // This constraint exists only in the disposable test database.
+            database.execute("ALTER TABLE sale DROP CONSTRAINT test_reject_last_row");
+        }
+
+        // A failed transaction must not retain the upload hash and poison retries.
+        var retried = upload(failedCsv);
+        assertEquals(201, retried.statusCode(), retried.body());
+        assertEquals(501, database.queryForObject(
+                "SELECT COUNT(*) FROM sale WHERE category = 'Rollback'", Integer.class));
+        assertEquals(503, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));
+        assertEquals(2, database.queryForObject("SELECT COUNT(*) FROM import_batch", Integer.class));
+        assertEquals(409, upload(failedCsv).statusCode());
+        assertEquals(503, database.queryForObject("SELECT COUNT(*) FROM sale", Integer.class));
+    }
+
+    @Test
     void duplicateUploadsDoNotDoubleCount() throws Exception {
         assertEquals(201, upload(CSV).statusCode());
         assertEquals(409, upload(CSV).statusCode());
