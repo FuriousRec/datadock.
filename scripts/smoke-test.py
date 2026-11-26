@@ -42,6 +42,13 @@ body += f'\r\n--{boundary}--\r\n'.encode()
 content_type = f'multipart/form-data; boundary={boundary}'
 status, response = request('/api/v1/imports', body, content_type=content_type)
 assert status == 201, (status, response)
+import_id = json.loads(response)['id']
+status, response = request(f'/api/v1/sales?importId={import_id}')
+assert status == 200, (status, response)
+import_sales = json.loads(response, parse_float=Decimal)
+assert len(import_sales) == 3 and all(sale['importId'] == import_id for sale in import_sales), import_sales
+status, response = request('/api/v1/sales?importId=00000000-0000-0000-0000-000000000000')
+assert status == 200 and json.loads(response) == [], (status, response)
 assert request('/api/v1/imports', body, content_type=content_type)[0] == 409
 status, response = request('/api/v1/analytics/summary?from=2026-09-01&to=2026-09-30')
 assert status == 200, (status, response)

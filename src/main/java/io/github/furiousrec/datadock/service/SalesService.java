@@ -119,7 +119,7 @@ public class SalesService {
 
     @Transactional(readOnly = true)
     public List<SaleView> sales(
-            LocalDate from, LocalDate to, String category,
+            LocalDate from, LocalDate to, String category, UUID importId,
             LocalDate afterSoldAt, Long afterId, int page, int size) {
         checkRange(from, to);
         if (page < 0 || page > 1_000_000 || size < 1 || size > 100) {
@@ -139,12 +139,14 @@ public class SalesService {
 
         String categoryFilter = normalizeCategory(category);
         String categoryClause = categoryFilter == null ? "" : " AND category = ?";
+        String importClause = importId == null ? "" : " AND import_id = ?";
         String cursorClause = hasCursor ? " AND (sold_at, id) > (?, ?)" : "";
         String paginationClause = hasCursor ? " LIMIT ?" : " LIMIT ? OFFSET ?";
         List<Object> parameters = new ArrayList<>();
         parameters.add(from);
         parameters.add(to);
         if (categoryFilter != null) parameters.add(categoryFilter);
+        if (importId != null) parameters.add(importId);
         if (hasCursor) {
             parameters.add(afterSoldAt);
             parameters.add(afterId);
@@ -154,9 +156,9 @@ public class SalesService {
 
         return database.query("""
                 SELECT id, import_id, sold_at, sku, category, quantity, unit_price
-                FROM sale WHERE sold_at BETWEEN ? AND ?%s%s
+                FROM sale WHERE sold_at BETWEEN ? AND ?%s%s%s
                 ORDER BY sold_at, id%s
-                """.formatted(categoryClause, cursorClause, paginationClause),
+                """.formatted(categoryClause, importClause, cursorClause, paginationClause),
                 (row, index) -> new SaleView(row.getLong("id"),
                         row.getObject("import_id", UUID.class),
                         row.getObject("sold_at", LocalDate.class),

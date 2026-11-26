@@ -402,6 +402,64 @@ class ApiIT {
     }
 
     @Test
+    void filtersSalesByImportWithoutMixingOverlappingUploads() throws Exception {
+        var importId = uploadOverlappingBatches();
+        var otherImportId = database.queryForObject(
+                "SELECT import_id FROM sale WHERE sku = 'C'", java.util.UUID.class);
+
+        var all = get("/api/v1/sales?importId=" + importId, true);
+        assertEquals(200, all.statusCode());
+        assertTrue(all.body().contains("\"sku\":\"A\""), all.body());
+        assertTrue(all.body().contains("\"sku\":\"B\""), all.body());
+        assertFalse(all.body().contains("\"sku\":\"C\""), all.body());
+        assertFalse(all.body().contains(otherImportId.toString()), all.body());
+
+        var filtered = get("/api/v1/sales?importId=" + importId
+                + "&category=Accessories&from=2026-09-01&to=2026-09-01", true);
+        assertEquals(200, filtered.statusCode());
+        assertTrue(filtered.body().contains("\"sku\":\"A\""), filtered.body());
+        assertFalse(filtered.body().contains("\"sku\":\"B\""), filtered.body());
+        assertFalse(filtered.body().contains(otherImportId.toString()), filtered.body());
+
+        assertEquals(401, get("/api/v1/sales?importId=" + importId, false).statusCode());
+        assertEquals(400, get("/api/v1/sales?importId=not-a-uuid", true).statusCode());
+        var missing = get("/api/v1/sales?importId=00000000-0000-0000-0000-000000000000", true);
+        assertEquals(200, missing.statusCode());
+        assertEquals("[]", missing.body());
+    }
+
+    @Test
+    void importScopedSalesSupportOffsetAndCursorPagination() throws Exception {
+        var importId = uploadOverlappingBatches();
+        long firstId = database.queryForObject(
+                "SELECT id FROM sale WHERE import_id = ? AND sku = 'A'", Long.class, importId);
+        var first = get("/api/v1/sales?importId=" + importId + "&size=1", true);
+        assertEquals(200, first.statusCode());
+        assertTrue(first.body().contains("\"id\":" + firstId + ","), first.body());
+
+        var offset = get("/api/v1/sales?importId=" + importId + "&size=1&page=1", true);
+        assertEquals(200, offset.statusCode());
+        assertTrue(offset.body().contains("\"sku\":\"B\""), offset.body());
+        var cursor = get("/api/v1/sales?importId=" + importId
+                + "&size=1&afterSoldAt=2026-09-01&afterId=" + firstId, true);
+        assertEquals(200, cursor.statusCode());
+        assertEquals(offset.body(), cursor.body());
+
+        var combined = get("/api/v1/sales?importId=" + importId
+                + "&category=Displays&size=1&afterSoldAt=2026-09-01&afterId=" + firstId, true);
+        assertEquals(200, combined.statusCode());
+        assertEquals(cursor.body(), combined.body());
+    }
+
+    private java.util.UUID uploadOverlappingBatches() throws Exception {
+        assertEquals(201, upload(CSV).statusCode());
+        assertEquals(201, upload("sold_at,sku,category,quantity,unit_price\n"
+                + "2026-09-01,A,Accessories,5,10.00\n"
+                + "2026-09-02,C,Displays,1,15.00\n").statusCode());
+        return database.queryForObject("SELECT import_id FROM sale WHERE sku = 'B'", java.util.UUID.class);
+    }
+
+    @Test
     void cursorPaginationStaysStableWhenEarlierSalesArrive() throws Exception {
         assertEquals(201, upload(CSV).statusCode());
 

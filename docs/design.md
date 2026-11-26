@@ -75,6 +75,12 @@ return `404`; malformed UUID paths remain client errors.
 
 ## Import history pagination
 
+Sales can be scoped to one upload with `GET /api/v1/sales?importId=<UUID>`.
+The UUID is bound as a SQL parameter and combines with date/category predicates
+before pagination. The existing `sale(import_id)` index supports provenance
+lookups without a schema change. Unknown import IDs return an empty filtered
+list, consistent with other sales filters; metadata lookup still returns 404.
+
 The authenticated `GET /api/v1/imports` endpoint lists newest batches first.
 It uses the compound cursor `(createdAt, id)` instead of an offset so imports
 committed between requests do not shift later pages. Both cursor fields are

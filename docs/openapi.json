@@ -258,6 +258,16 @@
               "minimum": 1
             },
             "description": "Cursor ID from the last returned sale; must be paired with afterSoldAt and page=0"
+          },
+          {
+            "name": "importId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Restrict sales to this upload. Combines with date/category filters and pagination. Unknown UUIDs return an empty list; malformed UUIDs return 400."
           }
         ],
         "responses": {
