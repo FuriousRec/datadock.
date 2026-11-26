@@ -78,7 +78,7 @@ Every `/api/v1/*` endpoint requires `X-API-Key`. Dates are inclusive ISO dates.
 | POST | /api/v1/imports | Multipart upload using the field `file`; returns import UUID, row count and SHA-256 |
 | GET | /api/v1/imports | Newest-first import history with `size` and optional `beforeCreatedAt` + `beforeId` cursor |
 | GET | /api/v1/imports/{id} | Resolve an import UUID to its row count, SHA-256 and creation timestamp |
-| GET | /api/v1/sales | `from`, `to`, optional exact `category`, `page`/`size`, or stable `afterSoldAt` + `afterId` cursor |
+| GET | /api/v1/sales | `from`, `to`, optional exact `category` and `importId`, `page`/`size`, or stable `afterSoldAt` + `afterId` cursor |
 | GET | /api/v1/analytics/summary | Row count, total units and EUR revenue for `from` / `to` |
 | GET | /api/v1/analytics/daily | Chronological daily rows, units and EUR revenue for `from` / `to`, optionally filtered by exact `category` |
 | GET | /api/v1/analytics/products | Top SKUs by exact EUR revenue for `from` / `to`, with optional exact `category` and bounded `limit` |
@@ -90,6 +90,12 @@ Every `/api/v1/*` endpoint requires `X-API-Key`. Dates are inclusive ISO dates.
 Offset pagination remains available for simple browsing. For stable traversal while imports
 continue, send the last row's `soldAt` and `id` as `afterSoldAt` and `afterId`.
 Cursor fields must be supplied together; cursor requests use `page=0`.
+
+To audit one upload, use `/api/v1/sales?importId=<UUID>` with the ID returned
+by `POST /api/v1/imports` or import history. The filter combines with dates,
+category and either pagination mode. A valid UUID with no matching rows returns
+`200` with `[]`; malformed UUIDs return `400`. Import metadata remains available
+through `/api/v1/imports/{id}`.
 
 Errors use Problem Details responses: 400 invalid input, 401 missing/incorrect key,
 409 duplicate file, 413 upload too large. Unexpected internal failures return 500
